@@ -137,8 +137,6 @@ The experiment was compiled and benchmarked on the following physical workstatio
 | **Host Compiler** | Microsoft Visual Studio 2022 Build Tools (MSVC v17.14, `vcvars64.bat`) |
 | **Compilation Language** | C++17 with CUDA Runtime API |
 
-> [!IMPORTANT]
-> The RTX 5060 Ti requires the explicit architecture flag `-gencode=arch=compute_120,code=sm_120`. Older architecture targets (such as `sm_50` or `sm_75`) trigger toolchain errors due to incompatible PTX representations on newer driver versions.
 
 ---
 
