@@ -1,0 +1,22 @@
+# Build artifacts
+*.exe
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# Visual Studio & IDE files
+.vs/
+.vscode/
+*.suo
+*.user
+*.vcxproj*
+
+# Python & Temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+generate_charts.py
+generate_docs.py
+generate_presentation.py
