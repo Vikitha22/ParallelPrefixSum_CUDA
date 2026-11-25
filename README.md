@@ -4,8 +4,8 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B&logoColor=white)](https://isocpp.org/)
 [![GPU](https://img.shields.io/badge/GPU-RTX%205060%20Ti%20(16GB)-76B900)](https://www.nvidia.com)
 [![Architecture](https://img.shields.io/badge/Arch-sm__120%20(Blackwell)-blue)](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html)
-[![Verification](https://img.shields.io/badge/Correctness-100%25%20PASSED-brightgreen)](#correctness-verification)
-[![Speedup](https://img.shields.io/badge/Max%20Speedup-3.07x-success)](#large-array-performance-n--1048576)
+[![Verification](https://img.shields.io/badge/Correctness-100%25%20PASSED-brightgreen)](#8-correctness-verification-and-experimental-results)
+[![Speedup](https://img.shields.io/badge/Max%20Speedup-3.07x-success)](#9-result-comparison-table)
 
 ---
 
@@ -152,12 +152,7 @@ ParallelPrefixSum_CUDA/
 ├── block_size_test.cu                  # Block-size scaling experiment (N = 65,536)
 │
 ├── README.md                           # Comprehensive documentation & evaluation
-├── Parallel_Prefix_Sum_Experiment_Report.docx  # Full formal technical report (Word)
-├── Parallel_Prefix_Sum_Experiment_Report.pdf   # Full formal technical report (PDF)
-├── Parallel_Prefix_Sum_Checkpoint_Presentation.pptx # 5-slide academic checkpoint presentation
-│
-├── run_experiments_for_screenshots.bat # Automation runner for console captures
-├── generate_charts.py                  # High-resolution benchmark chart generator
+├── run_experiments_for_screenshots.bat # Automation runner script for complete execution
 │
 ├── Screenshots/                        # Visual empirical verification & charts
 │   ├── block_size_comparison.png       # Block size vs. execution time & speedup chart
@@ -170,40 +165,123 @@ ParallelPrefixSum_CUDA/
 
 ---
 
-## 7. Compilation and Execution Guide
+## 7. Script and Automation
 
-### 7.1. Initialize MSVC Environment
-Open a standard Windows Command Prompt (CMD) and initialize the 64-bit MSVC environment:
+To facilitate automated execution, step-by-step verification, and systematic benchmark reproduction, an orchestration script (`run_experiments_for_screenshots.bat`) is included in the project root.
+
+### Script Purpose & Capabilities
+1. **Toolchain & Hardware Check:** Automatically invokes `nvidia-smi` and `nvcc --version` to query GPU state and compiler readiness.
+2. **Small-Scale Verification:** Runs the 8-element Hillis-Steele and Blelloch scans, displaying CPU and GPU arrays side-by-side.
+3. **Large-Array Scaling:** Executes the 1,048,576-element Blelloch and Hillis-Steele multi-block scans with 20 timing iterations and displays timing and speedup metrics.
+4. **Parametric Compilation:** Initializes the MSVC 64-bit environment and compiles `block_size_test.cu` on-the-fly for block sizes 128, 256, 512, and 1024, reporting performance and cleaning up temporary binaries.
+5. **Interactive Pauses:** Pauses after each test stage so that the user or evaluator can inspect output, view status, and capture clean terminal screenshots.
+
+### Full Script Content (`run_experiments_for_screenshots.bat`)
+
 ```cmd
-call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-cd /d "C:\Users\Admin\Documents\ParallelPrefixSum_CUDA"
-```
+@echo off
+title CUDA Parallel Prefix Sum - Experiment Execution
+echo =====================================================================
+echo  CUDA PARALLEL PREFIX SUM (SCAN) - EXPERIMENT RUNNER
+echo  GPU: NVIDIA GeForce RTX 5060 Ti (16 GB)
+echo  CUDA Toolkit: 13.4 | Driver: 610.88
+echo =====================================================================
+echo.
 
-### 7.2. Compile Source Programs
-```cmd
-:: 1. Hillis-Steele 8-element scan
-nvcc -gencode=arch=compute_120,code=sm_120 parallel_scan.cu -o parallel_scan.exe
+echo [1/8] Capturing CUDA Environment (nvidia-smi & nvcc --version)...
+nvidia-smi
+nvcc --version
+echo.
+echo -> Take screenshot: Screenshots\01_cuda_environment.png
+pause
 
-:: 2. Blelloch 8-element scan
-nvcc -gencode=arch=compute_120,code=sm_120 blelloch_scan.cu -o blelloch_scan.exe
-
-:: 3. Large-array Blelloch scan (N = 1,048,576)
-nvcc -gencode=arch=compute_120,code=sm_120 large_scan.cu -o large_scan.exe
-
-:: 4. Large-array Hillis-Steele scan (N = 1,048,576)
-nvcc -gencode=arch=compute_120,code=sm_120 hillis_steele_large.cu -o hillis_steele_large.exe
-
-:: 5. Block-size parametric test (e.g. Block Size = 512)
-nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=512 block_size_test.cu -o block_size_512.exe
-```
-
-### 7.3. Execute
-```cmd
+echo.
+echo =====================================================================
+echo [2/8] Running Hillis-Steele Inclusive Scan (8 elements)...
+echo =====================================================================
 parallel_scan.exe
+echo.
+echo -> Take screenshot: Screenshots\02_hillis_steele_inclusive.png
+pause
+
+echo.
+echo =====================================================================
+echo [3/8] Running Blelloch Exclusive Scan (8 elements)...
+echo =====================================================================
 blelloch_scan.exe
+echo.
+echo -> Take screenshot: Screenshots\03_blelloch_exclusive.png
+pause
+
+echo.
+echo =====================================================================
+echo [4/8] Running Multi-Block Blelloch Scan (N = 1,048,576)...
+echo =====================================================================
 large_scan.exe
+echo.
+echo -> Take screenshots:
+echo    Screenshots\04_large_blelloch_output.png
+echo    Screenshots\05_large_blelloch_performance.png
+pause
+
+echo.
+echo =====================================================================
+echo [5/8] Running Multi-Block Hillis-Steele Exclusive Scan (N = 1,048,576)...
+echo =====================================================================
 hillis_steele_large.exe
-block_size_512.exe
+echo.
+echo -> Take screenshots:
+echo    Screenshots\06_large_hillis_steele_output.png
+echo    Screenshots\07_large_hillis_steele_performance.png
+pause
+
+echo.
+echo =====================================================================
+echo [6/8] Running Block-Size Experiment (N = 65,536, Block Size = 128)...
+echo =====================================================================
+call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul
+nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=128 block_size_test.cu -o bs_128.exe
+bs_128.exe
+del bs_128.exe
+echo.
+echo -> Take screenshot: Screenshots\08_block_size_128.png
+pause
+
+echo.
+echo =====================================================================
+echo [7/8] Running Block-Size Experiment (N = 65,536, Block Size = 256, 512, 1024)...
+echo =====================================================================
+nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=256 block_size_test.cu -o bs_256.exe
+bs_256.exe
+del bs_256.exe
+echo.
+echo -> Take screenshot: Screenshots\09_block_size_256.png
+pause
+
+nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=512 block_size_test.cu -o bs_512.exe
+bs_512.exe
+del bs_512.exe
+echo.
+echo -> Take screenshot: Screenshots\10_block_size_512.png
+pause
+
+nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=1024 block_size_test.cu -o bs_1024.exe
+bs_1024.exe
+del bs_1024.exe
+echo.
+echo -> Take screenshot: Screenshots\11_block_size_1024.png
+pause
+
+echo.
+echo =====================================================================
+echo [8/8] Directory Tree Structure
+echo =====================================================================
+tree /F /A
+echo.
+echo -> Take screenshot: Screenshots\12_final_project_structure.png
+echo.
+echo All runs completed!
+pause
 ```
 
 ---
@@ -246,51 +324,68 @@ block_size_512.exe
 - **GPU Speedup:** **$3.066512\times$**
 - **Verification:** **PASSED**
 
-### 8.5. Large-Array Performance Comparison Table
-| Algorithm | Array Size ($N$) | Block Size | CPU Avg Time (ms) | GPU Avg Time (ms) | Speedup vs. CPU | Verification |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Blelloch (Exclusive)** | 1,048,576 | 1,024 | 0.244265 | 0.087019 | **$2.807024\times$** | PASSED |
-| **Hillis-Steele (Exclusive)** | 1,048,576 | 1,024 | 0.239605 | 0.078136 | **$3.066512\times$** | PASSED |
+---
+
+## 9. Result Comparison Table
+
+Below is the consolidated, comprehensive result comparison table summarizing all empirical benchmarks performed across algorithms, array dimensions, block sizes, and execution times on the NVIDIA RTX 5060 Ti:
+
+| Experiment Scope | Algorithm Variant | Scan Mode | Array Size ($N$) | Block Size | Grid Blocks | CPU Time (ms) | GPU Time (ms) | Measured Speedup | Correctness Status |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Small-Scale Verification** | Hillis-Steele | Inclusive | 8 | 8 | 1 | — | — | Baseline | **PASSED** |
+| **Small-Scale Verification** | Blelloch | Exclusive | 8 | 8 | 1 | — | — | Baseline | **PASSED** |
+| **Large-Scale Multi-Block** | Blelloch | Exclusive | 1,048,576 | 1,024 | 1,024 | 0.244265 | 0.087019 | **2.807024×** | **PASSED** |
+| **Large-Scale Multi-Block** | Hillis-Steele | Exclusive | 1,048,576 | 1,024 | 1,024 | 0.239605 | 0.078136 | **3.066512×** | **PASSED** |
+| **Block-Size Study** | Blelloch Hierarchical | Exclusive | 65,536 | 128 | 512 | 0.014290 | 0.023256 | 0.614465× | **PASSED** |
+| **Block-Size Study** | Blelloch Hierarchical | Exclusive | 65,536 | 256 | 256 | 0.014285 | 0.023486 | 0.608224× | **PASSED** |
+| **Block-Size Study** | Blelloch Hierarchical | Exclusive | 65,536 | **512 (Optimal)** | 128 | 0.014320 | **0.021187** | **0.675880×** | **PASSED** |
+| **Block-Size Study** | Blelloch Hierarchical | Exclusive | 65,536 | 1024 (Worst) | 64 | 0.014290 | 0.062128 | 0.230009× | **PASSED** |
+
+---
+
+## 10. Result Comparison Graphs
+
+### 10.1. Large-Array Execution Time & Speedup Comparison ($N = 1,048,576$)
+This graph illustrates the execution latency and corresponding speedup factor of Blelloch versus Hillis-Steele exclusive scan algorithms for 1,048,576 elements:
 
 ![Large Scan Comparison](Screenshots/large_scan_comparison.png)
 
----
+*Key Takeaway:* Hillis-Steele achieved lower GPU execution latency ($0.078136\text{ ms}$) and higher speedup ($3.07\times$) compared to Blelloch ($0.087019\text{ ms}$, $2.81\times$) due to lower warp branch divergence and reduced barrier synchronization overhead on the RTX 5060 Ti architecture.
 
-## 9. Block-Size Parametric Scaling Study
-
-To investigate the sensitivity of the parallel scan kernel to thread-block dimensions, an array of $N = 65,536$ elements was benchmarked across four distinct block sizes ($128, 256, 512, 1024$) with 20 timing iterations:
-
-| Block Size | Number of Blocks | CPU Avg Time (ms) | GPU Avg Time (ms) | Measured Speedup | Correctness Status |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| **128** | 512 | 0.014290 | 0.023256 | 0.614465× | **PASSED** |
-| **256** | 256 | 0.014285 | 0.023486 | 0.608224× | **PASSED** |
-| **512** | 128 | 0.014320 | **0.021187** | **0.675880×** | **PASSED** |
-| **1024** | 64 | 0.014290 | 0.062128 | 0.230009× | **PASSED** |
+### 10.2. Parametric Block-Size Scaling and Latency Response ($N = 65,536$)
+This dual-axis chart compares execution time (ms) and speedup factor against thread-block dimensions ($128, 256, 512, 1024$):
 
 ![Block Size Comparison](Screenshots/block_size_comparison.png)
 
+*Key Takeaway:* Block size 512 produced the lowest GPU latency ($0.021187\text{ ms}$) and highest speedup ($0.68\times$). Block size 1024 experienced an abrupt 2.9× slowdown ($0.062128\text{ ms}$) due to increased barrier synchronization latency across 32 warps and constrained SM block concurrency.
+
+### 10.3. Three-Stage Hierarchical Scan Architecture
+Visual schematic of the multi-block decomposition used to overcome the 1,024-thread block barrier:
+
+![Three Stage Architecture](Screenshots/three_stage_architecture.png)
+
 ---
 
-## 10. Technical Analysis and Key Observations
+## 11. Technical Analysis and Key Observations
 
-### 10.1. Work-Efficiency vs. Measured Performance (Blelloch vs. Hillis-Steele)
+### 11.1. Work-Efficiency vs. Measured Performance (Blelloch vs. Hillis-Steele)
 A prominent theoretical expectation in parallel algorithm design is that Blelloch ($O(N)$ operations) should outperform Hillis-Steele ($O(N \log N)$ operations). However, in our empirical measurements on the NVIDIA RTX 5060 Ti:
 - **Hillis-Steele GPU Time:** $0.078136\text{ ms}$ ($3.07\times$ speedup)
 - **Blelloch GPU Time:** $0.087019\text{ ms}$ ($2.81\times$ speedup)
 
 **Technical Explanations for this divergence:**
-1. **Thread Divergence in Tree Traversal:** In Blelloch's up-sweep and down-sweep, the number of active threads halves at every level of the tree ($N/2, N/4, \dots, 1$). Because threads within a warp execute in lockstep, inactive threads remain idle, leading to severe warp divergence and degraded SIMT efficiency.
+1. **Thread Divergence in Tree Traversal:** In Blelloch's up-sweep and down-sweep, the number of active threads halves at every level of the tree ($N/2, N/4, \dots, 1$). Because threads within a warp execute in lockstep, inactive threads remain idle, leading to warp divergence and degraded SIMT efficiency.
 2. **Synchronization and Barrier Latency:** Blelloch requires explicit barrier synchronizations (`__syncthreads()`) before and after each phase and between each tree stride. Hillis-Steele features fixed-stride additions that keep all threads with index $\ge \text{stride}$ actively performing compute operations.
 3. **Hardware Compute vs. Memory Bandwidth:** On high-throughput modern GPUs like the RTX 5060 Ti, extra integer additions are computationally inexpensive compared to instruction stall penalties induced by divergence and memory barrier serialization.
 
-### 10.2. Analysis of Block-Size Scaling ($N = 65,536$)
+### 11.2. Analysis of Block-Size Scaling ($N = 65,536$)
 1. **Optimal Configuration at Block Size 512:** Block size 512 achieved the lowest GPU execution time ($0.021187\text{ ms}$) and highest speedup ($0.68\times$). A block size of 512 strikes an optimal compromise between high SM warp occupancy and manageable intra-block synchronization overhead.
 2. **Performance Degradation at Block Size 1024:** Increasing block size to 1,024 resulted in an abrupt performance drop ($0.062128\text{ ms}$, a $2.9\times$ slowdown compared to block size 512). This occurs because 1,024-thread blocks maximize register pressure and barrier latency, reducing the active thread-block concurrency on each Streaming Multiprocessor (SM).
 3. **CPU Outperforming GPU at Small Array Sizes:** At $N = 65,536$, the sequential CPU implementation was faster than all GPU configurations ($0.014\text{ ms}$ CPU vs. $0.021\text{ ms}$–$0.062\text{ ms}$ GPU). For smaller problem sizes, CPU L1/L2 cache locality dominates, while GPU performance is bottlenecked by CUDA kernel launch overhead, PCIe buffer allocation, and kernel synchronization costs.
 
 ---
 
-## 11. Practical Applications of Parallel Prefix Sum
+## 12. Practical Applications of Parallel Prefix Sum
 
 Parallel scan is recognized as a foundational algorithmic building block in parallel computing, underlying:
 1. **Stream Compaction & Filtering:** Selecting valid or active elements from large collections (e.g., removing culled triangles in graphics pipelines) in $O(1)$ parallel steps.
@@ -301,23 +396,45 @@ Parallel scan is recognized as a foundational algorithmic building block in para
 
 ---
 
-## 12. Verification Screenshots and Artifacts
+## 13. Compilation and Execution Guide
 
-The following visual artifacts and documentation files are available in this repository:
+### 13.1. Initialize MSVC Environment
+Open a standard Windows Command Prompt (CMD) and initialize the 64-bit MSVC environment:
+```cmd
+call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+cd /d "C:\Users\Admin\Documents\ParallelPrefixSum_CUDA"
+```
 
-| Document / Screenshot | Purpose | Location |
-|:---|:---|:---|
-| **Technical Experiment Report** | Complete 18-section formal IEEE-style documentation (Word) | [`Parallel_Prefix_Sum_Experiment_Report.docx`](Parallel_Prefix_Sum_Experiment_Report.docx) |
-| **Technical Experiment Report (PDF)** | Formatted, printable technical report | [`Parallel_Prefix_Sum_Experiment_Report.pdf`](Parallel_Prefix_Sum_Experiment_Report.pdf) |
-| **Checkpoint Presentation** | 5-slide academic evaluation slide deck | [`Parallel_Prefix_Sum_Checkpoint_Presentation.pptx`](Parallel_Prefix_Sum_Checkpoint_Presentation.pptx) |
-| **Block-Size Comparison Chart** | High-resolution empirical scaling plot | [`Screenshots/block_size_comparison.png`](Screenshots/block_size_comparison.png) |
-| **Large Scan Comparison Chart** | Blelloch vs. Hillis-Steele speedup comparison | [`Screenshots/large_scan_comparison.png`](Screenshots/large_scan_comparison.png) |
-| **3-Stage Architecture Diagram** | Detailed visual schematic of multi-block scan | [`Screenshots/three_stage_architecture.png`](Screenshots/three_stage_architecture.png) |
-| **Automated Experiment Runner** | CMD batch script to run all tests with pause prompts | [`run_experiments_for_screenshots.bat`](run_experiments_for_screenshots.bat) |
+### 13.2. Compile Source Programs
+```cmd
+:: 1. Hillis-Steele 8-element scan
+nvcc -gencode=arch=compute_120,code=sm_120 parallel_scan.cu -o parallel_scan.exe
+
+:: 2. Blelloch 8-element scan
+nvcc -gencode=arch=compute_120,code=sm_120 blelloch_scan.cu -o blelloch_scan.exe
+
+:: 3. Large-array Blelloch scan (N = 1,048,576)
+nvcc -gencode=arch=compute_120,code=sm_120 large_scan.cu -o large_scan.exe
+
+:: 4. Large-array Hillis-Steele scan (N = 1,048,576)
+nvcc -gencode=arch=compute_120,code=sm_120 hillis_steele_large.cu -o hillis_steele_large.exe
+
+:: 5. Block-size parametric test (e.g. Block Size = 512)
+nvcc -gencode=arch=compute_120,code=sm_120 -DBLOCK_SIZE=512 block_size_test.cu -o block_size_512.exe
+```
+
+### 13.3. Execute
+```cmd
+parallel_scan.exe
+blelloch_scan.exe
+large_scan.exe
+hillis_steele_large.exe
+block_size_512.exe
+```
 
 ---
 
-## 13. Conclusion
+## 14. Conclusion
 
 This project successfully finalized the implementation, verification, and empirical benchmarking of parallel prefix sum algorithms on the NVIDIA GeForce RTX 5060 Ti. 
 
